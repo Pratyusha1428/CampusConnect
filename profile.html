@@ -1,0 +1,278 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My Profile | CampusConnect</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <!-- Navigation Bar -->
+    <header class="navbar">
+
+        <div class="logo">
+            CampusConnect
+        </div>
+
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="opportunities.html">Opportunities</a>
+            <a href="saved.html">Saved</a>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="notices.html">Notices & events</a>
+            <a href="profile.html" class="active">Profile</a>
+        </nav>
+
+        <a href="login.html" class="nav-btn">Logout</a>
+
+    </header>
+
+
+    <!-- Profile Page -->
+    <main class="profile-container">
+
+        <!-- Profile Header -->
+        <section class="profile-header">
+
+            <div class="profile-avatar">
+                PR
+            </div>
+
+            <div class="profile-intro">
+
+                <h1>Pratyusha Rai</h1>
+
+                <p>
+                    B.Tech CSE (Data Science) Student
+                </p>
+
+                <p>
+                    Goel Institute of Technology and Management
+                </p>
+
+            </div>
+
+            <button class="edit-profile-btn" type="button" aria-expanded="false" aria-controls="profile-edit-form">
+                Edit Profile
+            </button>
+
+        </section>
+
+        <form class="profile-edit-form" id="profile-edit-form" hidden>
+            <h2>Edit your profile</h2>
+            <label for="profile-name">Full name</label>
+            <input id="profile-name" name="name" required minlength="2" maxlength="100">
+            <label for="profile-course">Course / degree</label>
+            <input id="profile-course" name="course" maxlength="150">
+            <label for="profile-college">College</label>
+            <input id="profile-college" name="college" maxlength="200">
+            <label for="profile-skills">Skills (separate with commas)</label>
+            <input id="profile-skills" name="skills" maxlength="500" placeholder="JavaScript, Python, Communication">
+            <label for="profile-bio">About me</label>
+            <textarea id="profile-bio" name="bio" maxlength="1000" rows="4" placeholder="Tell employers a little about yourself"></textarea>
+            <div class="profile-edit-actions">
+                <button class="auth-button" type="submit">Save changes</button>
+                <button class="profile-cancel-btn" type="button">Cancel</button>
+            </div>
+        </form>
+
+
+        <!-- Profile Completion -->
+        <section class="profile-completion">
+
+            <div class="completion-info">
+
+                <h2>Profile Completion</h2>
+
+                <span>75%</span>
+
+            </div>
+
+            <div class="progress-bar">
+
+                <div class="progress"
+                     style="width: 75%;">
+                </div>
+
+            </div>
+
+            <p>
+                Complete your profile to get better opportunity recommendations.
+            </p>
+
+        </section>
+
+
+        <!-- About Section -->
+        <section class="profile-section">
+
+            <h2>About Me</h2>
+
+            <p class="profile-bio">
+                I am a Computer Science student interested in Data Science,
+                Artificial Intelligence and Web Development. I enjoy building
+                projects, learning new technologies and developing practical
+                skills for my career.
+            </p>
+
+        </section>
+
+
+        <!-- Education -->
+        <section class="profile-section">
+
+            <h2>Education</h2>
+
+            <div class="education-card">
+
+                <h3>Bachelor of Technology - Computer Science</h3>
+
+                <p>
+                    Goel Institute of Technology and Management
+                </p>
+
+                <p>
+                    Specialization: Data Science
+                </p>
+
+                <span>2025 - 2029</span>
+
+            </div>
+
+        </section>
+
+
+        <!-- Skills -->
+        <section class="profile-section">
+
+            <h2>Skills</h2>
+
+            <div class="skills-container">
+
+                <span class="skill">HTML</span>
+                <span class="skill">CSS</span>
+                <span class="skill">JavaScript</span>
+                <span class="skill">C</span>
+                <span class="skill">Python</span>
+                <span class="skill">Data Science</span>
+                <span class="skill">Git & GitHub</span>
+
+            </div>
+
+        </section>
+
+
+        <!-- Projects -->
+        <section class="profile-section">
+
+            <div class="section-heading">
+
+                <h2>Projects</h2>
+
+                <button class="add-btn" type="button" data-open-profile-form="project-form">
+                    + Add Project
+                </button>
+            </div>
+
+            <form class="profile-item-form" id="project-form" data-profile-item="projects" hidden>
+                <label for="project-title">Project name</label>
+                <input id="project-title" name="title" required minlength="2" maxlength="120">
+                <label for="project-description">Description</label>
+                <textarea id="project-description" name="description" required minlength="2" maxlength="1000" rows="3"></textarea>
+                <label for="project-technologies">Technologies (comma-separated)</label>
+                <input id="project-technologies" name="technologies" maxlength="300" placeholder="HTML, CSS, JavaScript">
+                <label for="project-url">Project link (optional)</label>
+                <input id="project-url" name="url" type="url" maxlength="500" placeholder="https://example.com">
+                <div class="profile-edit-actions">
+                    <button class="auth-button" type="submit">Save project</button>
+                    <button class="profile-item-cancel" type="button">Cancel</button>
+                </div>
+            </form>
+
+            <div class="profile-projects" aria-live="polite">
+                <p>Loading projects…</p>
+            </div>
+
+        </section>
+
+
+        <!-- Certifications -->
+        <section class="profile-section">
+
+            <div class="section-heading">
+
+                <h2>Certifications</h2>
+
+                <button class="add-btn" type="button" data-open-profile-form="certification-form">
+                    + Add Certificate
+                </button>
+            </div>
+
+            <form class="profile-item-form" id="certification-form" data-profile-item="certifications" hidden>
+                <label for="certification-name">Certification name</label>
+                <input id="certification-name" name="name" required minlength="2" maxlength="150">
+                <label for="certification-issuer">Issuing organization</label>
+                <input id="certification-issuer" name="issuer" required minlength="2" maxlength="150">
+                <label for="certification-date">Issue date (optional)</label>
+                <input id="certification-date" name="issueDate" type="month">
+                <label for="certification-url">Credential link (optional)</label>
+                <input id="certification-url" name="credentialUrl" type="url" maxlength="500" placeholder="https://example.com/credential">
+                <div class="profile-edit-actions">
+                    <button class="auth-button" type="submit">Save certification</button>
+                    <button class="profile-item-cancel" type="button">Cancel</button>
+                </div>
+            </form>
+
+            <div class="profile-certifications" aria-live="polite">
+                <p>Loading certifications…</p>
+            </div>
+
+        </section>
+
+
+        <!-- Resume -->
+        <section class="profile-section resume-section">
+
+            <h2>Resume</h2>
+
+            <div class="resume-card">
+
+                <div>
+
+                    <h3>My Resume</h3>
+
+                    <p>
+                        Upload your latest resume to apply for opportunities.
+                    </p>
+
+                </div>
+
+                <button class="upload-btn">
+                    Upload Resume
+                </button>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- Footer -->
+    <footer class="footer">
+
+        <p>
+            © 2026 CampusConnect. All rights reserved.
+        </p>
+
+    </footer>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
+```

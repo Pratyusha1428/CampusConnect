@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus updates | CampusConnect</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="navbar">
+        <a class="logo" href="dashboard.html">CampusConnect</a>
+        <nav>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="opportunities.html">Opportunities</a>
+            <a href="saved.html">Saved</a>
+            <a href="notices.html" aria-current="page">Notices & events</a>
+            <a href="applications.html">Applications</a>
+        </nav>
+        <a href="index.html" class="nav-btn">Logout</a>
+    </header>
+    <main class="updates-page">
+        <section class="updates-intro">
+            <p class="eyebrow">FROM YOUR PLACEMENT CELL</p>
+            <h1>Campus updates.</h1>
+            <p class="page-description">Stay up to date with important notices and events shared by your college.</p>
+        </section>
+        <section class="updates-section">
+            <div class="section-heading">
+                <div><p class="eyebrow">IMPORTANT INFORMATION</p><h2>Latest notices</h2></div>
+            </div>
+            <div class="updates-grid notices-list" aria-live="polite"><p>Loading notices…</p></div>
+        </section>
+        <section class="updates-section">
+            <div class="section-heading">
+                <div><p class="eyebrow">SAVE THE DATE</p><h2>Upcoming events</h2></div>
+            </div>
+            <div class="updates-grid events-list" aria-live="polite"><p>Loading events…</p></div>
+        </section>
+    </main>
+    <script src="js/script.js"></script>
+</body>
+</html>

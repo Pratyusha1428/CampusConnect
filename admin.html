@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Placement cell admin | CampusConnect</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="navbar">
+        <a class="logo" href="admin.html">CampusConnect</a>
+        <nav>
+            <a href="#applications">Applications</a>
+            <a href="#opportunities">Opportunities</a>
+            <a href="#notices">Notices</a>
+            <a href="#events">Events</a>
+        </nav>
+        <a href="index.html" class="nav-btn">Logout</a>
+    </header>
+    <main class="admin-page">
+        <section class="admin-heading">
+            <div>
+                <p class="eyebrow">PLACEMENT CELL</p>
+                <h1>Admin dashboard.</h1>
+                <p class="page-description">Review student applications and share opportunities and campus updates.</p>
+            </div>
+        </section>
+        <section class="admin-stats" aria-label="CampusConnect overview">
+            <article><span>Students</span><strong data-admin-count="students">—</strong></article>
+            <article><span>Opportunities</span><strong data-admin-count="opportunities">—</strong></article>
+            <article><span>Notices</span><strong data-admin-count="notices">—</strong></article>
+            <article><span>Events</span><strong data-admin-count="events">—</strong></article>
+            <article><span>Applications</span><strong data-admin-count="applications">—</strong></article>
+        </section>
+        <section class="admin-section" id="applications">
+            <div class="admin-section-heading">
+                <div><p class="eyebrow">STUDENT SUBMISSIONS</p><h2>Review applications</h2></div>
+            </div>
+            <div class="admin-applications" data-admin-applications aria-live="polite">
+                <p>Loading applications…</p>
+            </div>
+        </section>
+        <section class="admin-section" id="opportunities">
+            <div class="admin-section-heading">
+                <div><p class="eyebrow">INTERNSHIPS & JOBS</p><h2>Post an opportunity</h2></div>
+            </div>
+            <form class="admin-form" data-kind="opportunities">
+                <label>Role title<input name="title" required maxlength="150" placeholder="Software Engineering Intern"></label>
+                <label>Company<input name="company" required maxlength="120" placeholder="Company name"></label>
+                <label>Type<select name="type" required><option value="Internship">Internship</option><option value="Job">Job</option></select></label>
+                <label>Location<input name="location" required maxlength="120" placeholder="Remote, city, or hybrid"></label>
+                <label>Pay / stipend<input name="stipend" maxlength="80" placeholder="₹15,000/month"></label>
+                <label>Skills (comma-separated)<input name="skills" maxlength="500" placeholder="JavaScript, React, teamwork"></label>
+                <label class="admin-wide">Description<textarea name="description" required maxlength="2000" rows="4" placeholder="Describe the role and how students can apply."></textarea></label>
+                <button class="primary-btn" type="submit">Publish opportunity →</button>
+            </form>
+            <ul class="admin-list" data-admin-list="opportunities"><li>Loading opportunities…</li></ul>
+        </section>
+        <section class="admin-section" id="notices">
+            <div class="admin-section-heading">
+                <div><p class="eyebrow">STUDENT ANNOUNCEMENTS</p><h2>Publish a notice</h2></div>
+            </div>
+            <form class="admin-form" data-kind="notices">
+                <label>Notice title<input name="title" required maxlength="150" placeholder="Placement drive registration closes Friday"></label>
+                <label>Category<select name="category"><option>General</option><option>Placement</option><option>Internship</option><option>Deadline</option></select></label>
+                <label class="admin-wide">Message<textarea name="content" required maxlength="3000" rows="4" placeholder="Share the details students need to know."></textarea></label>
+                <button class="primary-btn" type="submit">Publish notice →</button>
+            </form>
+            <ul class="admin-list" data-admin-list="notices"><li>Loading notices…</li></ul>
+        </section>
+        <section class="admin-section" id="events">
+            <div class="admin-section-heading">
+                <div><p class="eyebrow">CAMPUS CALENDAR</p><h2>Add an event</h2></div>
+            </div>
+            <form class="admin-form" data-kind="events">
+                <label>Event title<input name="title" required maxlength="150" placeholder="Career readiness workshop"></label>
+                <label>Date<input name="eventDate" type="date" required></label>
+                <label>Location<input name="location" required maxlength="150" placeholder="Auditorium or online"></label>
+                <label>Registration link<input name="registrationUrl" type="url" maxlength="500" placeholder="https://example.com/register"></label>
+                <label class="admin-wide">Description<textarea name="description" required maxlength="2000" rows="4" placeholder="What will students learn or need to bring?"></textarea></label>
+                <button class="primary-btn" type="submit">Publish event →</button>
+            </form>
+            <ul class="admin-list" data-admin-list="events"><li>Loading events…</li></ul>
+        </section>
+    </main>
+    <script src="js/script.js"></script>
+</body>
+</html>

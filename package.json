@@ -1,0 +1,17 @@
+{
+  "name": "campusconnect-mini-project",
+  "version": "1.0.0",
+  "description": "CampusConnect student jobs and internships portal",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "migrate:json": "node migrate-json-to-mongo.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mongoose": "^8.9.5",
+    "multer": "^2.5.0"
+  }
+}
