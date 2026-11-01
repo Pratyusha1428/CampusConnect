@@ -96,7 +96,7 @@
           ? { name: document.querySelector("#name").value, email: document.querySelector("#email").value, password: document.querySelector("#password").value }
           : { email: document.querySelector("#email").value, password: document.querySelector("#password").value, role };
         const data = await request(isSignup ? "/register" : "/login", { method: "POST", body: JSON.stringify(body) });
-        saveSession(data); location.href = data.user.role === "admin" ? "admin.html" : "dashboard.html";
+        saveSession(data); location.href = "index.html";
       } catch (e) { message(e.message, true, form); }
       finally { if (button) button.disabled = false; }
     });
@@ -448,17 +448,17 @@
     });
   }
   function handleLogout() {
-    document.querySelectorAll('a[href="login.html"], a[href="index.html"]').forEach(link => {
+    document.addEventListener("click", event => {
+      const link = event.target.closest('a[href="login.html"], a[href="index.html"]');
+      if (!link) return;
       if (!/logout/i.test(link.textContent)) return;
-      link.addEventListener("click", event => {
-        event.preventDefault();
-        request("/logout", { method: "POST" }).catch(error => {
-          message(`Your local session was cleared, but the server logout request failed: ${error.message}`, true);
-        }).finally(() => {
-          localStorage.removeItem("cc_token");
-          localStorage.removeItem("cc_user");
-          location.href = "index.html";
-        });
+      event.preventDefault();
+      request("/logout", { method: "POST" }).catch(error => {
+        message(`Your local session was cleared, but the server logout request failed: ${error.message}`, true);
+      }).finally(() => {
+        localStorage.removeItem("cc_token");
+        localStorage.removeItem("cc_user");
+        location.href = "index.html";
       });
     });
   }
@@ -471,8 +471,68 @@
       else if (text.includes("profile")) a.href = "profile.html";
     });
   }
+  function initializeNavigation() {
+    document.querySelectorAll(".navbar").forEach((navbar, index) => {
+      const links = navbar.querySelector(":scope > nav, :scope > .nav-links");
+      const logo = navbar.querySelector(":scope > .logo");
+      if (!links || !logo) return;
+      const menuId = `campusconnect-menu-${index + 1}`;
+      links.id = links.id || menuId;
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "nav-toggle";
+      toggle.textContent = "Menu";
+      toggle.setAttribute("aria-label", "Toggle navigation menu");
+      toggle.setAttribute("aria-controls", links.id);
+      toggle.setAttribute("aria-expanded", "false");
+      logo.insertAdjacentElement("afterend", toggle);
+      toggle.addEventListener("click", () => {
+        const isOpen = links.classList.toggle("is-open");
+        toggle.setAttribute("aria-expanded", String(isOpen));
+        toggle.textContent = isOpen ? "Close" : "Menu";
+      });
+      links.addEventListener("click", event => {
+        if (!event.target.closest("a")) return;
+        links.classList.remove("is-open");
+        toggle.setAttribute("aria-expanded", "false");
+        toggle.textContent = "Menu";
+      });
+    });
+  }
+  function updateHomeNavigation(user) {
+    const navbar = document.querySelector(".home-entry .navbar");
+    const nav = navbar?.querySelector("nav");
+    const actions = navbar?.querySelector(".nav-actions");
+    if (!navbar || !nav || !actions) return;
+    nav.innerHTML = user.role === "admin"
+      ? '<a href="index.html">Home</a><a href="admin.html">Admin dashboard</a>'
+      : '<a href="index.html">Home</a><a href="opportunities.html">Opportunities</a><a href="saved.html">Saved</a><a href="applications.html">Applications</a><a href="notices.html">Notices & events</a><a href="profile.html">Profile</a>';
+    actions.innerHTML = user.role === "admin"
+      ? '<a href="admin.html" class="login-btn">Admin dashboard</a><a href="index.html" class="signup-btn" data-logout>Logout</a>'
+      : '<a href="dashboard.html" class="login-btn">Dashboard</a><a href="index.html" class="signup-btn" data-logout>Logout</a>';
+  }
+  async function routeEntryPages() {
+    const isHome = document.body.classList.contains("home-entry");
+    const isRolePage = Boolean(document.querySelector(".role-page"));
+    if (!isHome && !isRolePage) return;
+    const token = getToken();
+    if (!token) {
+      if (isHome) location.replace("role.html");
+      return;
+    }
+    try {
+      const { user } = await request("/me");
+      saveSession({ token, user });
+      if (isRolePage) location.replace("index.html");
+      else updateHomeNavigation(user);
+    } catch {
+      localStorage.removeItem("cc_token");
+      localStorage.removeItem("cc_user");
+      if (isHome) location.replace("role.html");
+    }
+  }
   document.addEventListener("DOMContentLoaded", async () => {
-    fixLinks(); handleLogout(); handleAuth(); handleCardActions();
-    await Promise.all([loadOpportunities(), loadSaved(), loadApplications(), loadProfile(), loadDashboard(), loadCampusUpdates(), loadAdminDashboard(), handleResume()]);
+    fixLinks(); initializeNavigation(); handleLogout(); handleAuth(); handleCardActions();
+    await Promise.all([routeEntryPages(), loadOpportunities(), loadSaved(), loadApplications(), loadProfile(), loadDashboard(), loadCampusUpdates(), loadAdminDashboard(), handleResume()]);
   });
 })();

@@ -18,6 +18,7 @@ The app stops with a clear error if MongoDB is not configured or unavailable. Ne
 
 ## Features
 - First-visit student or placement-cell role selection
+- Role choice is shown only when logged out; signed-in users land on the home page
 - Student registration and login with password hashing
 - Admin-only login and server-enforced admin permissions
 - Admin dashboard to review student applications and update their status, and to publish/delete internships/jobs, notices, and events
