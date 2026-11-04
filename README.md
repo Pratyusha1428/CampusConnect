@@ -2,39 +2,65 @@
 
 A campus placement portal built with HTML, CSS, browser JavaScript, Node.js, Express, and MongoDB.
 
-## Requirements
-- Node.js LTS
-- MongoDB running locally or a MongoDB Atlas connection string
-- A browser
+## What runs where
 
-## Configure and run
-1. Open the project folder in VS Code and run `npm install`.
-2. Copy `.env.example` to `.env`.
-3. Set `MONGODB_URI` to your local MongoDB URI or Atlas connection string.
-4. Change `ADMIN_EMAIL` and `ADMIN_PASSWORD` to the placement cell administrator's credentials. The password must be at least 12 characters.
-5. Run `npm start` and open `http://localhost:3000`.
+The website needs both the Node.js/Express server and MongoDB. GitHub Actions can automate a deployment, but **GitHub Pages only serves static files**; it cannot run this app's API or store accounts. Use a Node.js web host for the app and MongoDB Atlas for persistent account, application, profile, and resume data.
 
-The app stops with a clear error if MongoDB is not configured or unavailable. Never commit `.env` or use real student data in a public demo.
+## Deploy the full app
+
+This repository includes a Render Blueprint in `render.yaml`.
+
+1. Push the project to GitHub. Do not commit `.env`, `data/db.json`, or student uploads.
+2. In Render, create a Blueprint from the repository and review the `campusconnect` web service.
+3. Set `MONGODB_URI` to the Atlas connection string, `ADMIN_EMAIL` to the placement-cell email, and `ADMIN_PASSWORD` to a unique password of at least 12 characters in the Render service's environment settings.
+4. In Atlas Network Access, allow the web service's outbound IP addresses. Keep database credentials private; do not put them in the repository or browser code.
+5. Wait for `/api/health` to report `{"status":"ok","database":"connected"}` and open the Render service URL. Signups and logins work on that URL because the frontend and API are served by the same Node service.
+
+Do not use the GitHub Pages URL for signup/login. If Pages is enabled, it is only a static preview; it cannot use the Node server or MongoDB.
+
+## Import existing local accounts (one time)
+
+The older `data/db.json` and `uploads/` files are intentionally ignored by Git, so they are not included in a GitHub deployment. To keep their users and related records:
+
+1. On the computer that has the old data, configure `.env` with the same Atlas database you plan to use for the app. Add your computer's IP to Atlas Network Access temporarily.
+2. Before starting the web service against that database, run `npm.cmd run migrate:json` in PowerShell (`npm run migrate:json` in Command Prompt). The migration imports the existing users, profiles, resumes, opportunities, saved items, and applications, including available resume files.
+3. The migration only runs against an empty CampusConnect database. If the app has already seeded data into the target database, back it up and use a separate empty database rather than deleting records.
+4. Remove the temporary IP rule when finished if it is no longer needed.
+
+If the old data is missing or the migration is not run, an existing local account will not be found in the deployed Atlas database. Ask students to create new accounts only after the backend is live.
+
+## Run locally
+
+Requirements: Node.js LTS and MongoDB local or Atlas.
+
+1. Copy `.env.example` to `.env` and set `MONGODB_URI`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD`.
+2. If you have existing JSON accounts, migrate them to an empty target database before starting the app.
+3. Install dependencies and start the app from this folder:
+
+   ```powershell
+   npm.cmd install
+   npm.cmd start
+   ```
+
+4. Open `http://localhost:3000`. Keep the server terminal open.
+
+If PowerShell blocks `npm`, use `npm.cmd` as shown or run `npm` from Command Prompt. The site opened directly as an HTML file does not have a backend.
 
 ## Features
-- First-visit student or placement-cell role selection
-- Role choice is shown only when logged out; signed-in users land on the home page
-- Student registration and login with password hashing
-- Admin-only login and server-enforced admin permissions
-- Admin dashboard to review student applications and update their status, and to publish/delete internships/jobs, notices, and events
-- Student opportunity search, filters, saved opportunities, and applications
-- Student profile, projects, and certifications editing, plus resume upload (PDF/DOC/DOCX, maximum 5 MB)
-- MongoDB persistence through Mongoose
 
-## Existing JSON demo data
+- Student account signup and login with password hashing
+- Administrator login provisioned from server environment variables
+- MongoDB-backed sessions that survive server restarts and expire after seven days
+- Admin dashboard for reviewing applications and managing jobs, internships, notices, and events
+- Student profile, projects, certifications, saved opportunities, and applications
+- Resume upload/download (PDF/DOC/DOCX, maximum 5 MB), stored in MongoDB
 
-The old `data/db.json` file is not used by the app after the MongoDB update. To explicitly import its existing users, profiles, resumes, opportunities, saved items, and applications, configure `.env` first and run `npm run migrate:json` **before** starting the app against an empty database. This copies the records, including password hashes and email addresses, to the MongoDB database in `MONGODB_URI`. Review that destination and its access controls before running the migration. The migration refuses to run if any CampusConnect collection already contains records.
+## Validate
 
-If you do not need those records, simply run `npm start`; the app creates the sample opportunities automatically.
+Run the automated API tests with `npm test` (or `npm.cmd test` in PowerShell).
 
-## Local MVP limitations
-- This is a development MVP, not a production deployment.
-- Login sessions are held in server memory; restarting the server logs users out.
-- Opportunity data is sample data, not live job listings.
-- Email verification, password reset, and AI resume analysis are not included.
-- Use HTTPS, managed session storage, rate limiting, backups, and appropriate privacy controls before deployment.
+## Limitations
+
+- This is an MVP. Email verification, password reset, rate limiting, and AI resume analysis are not included.
+- Opportunity records are sample data until an administrator publishes real ones.
+- Use HTTPS, backups, and appropriate privacy controls before handling real student information.

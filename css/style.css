@@ -3721,6 +3721,10 @@ footer > p {
     color: var(--violet);
 }
 
+.resume-download-btn[hidden] {
+    display: none;
+}
+
 
 .replace-btn {
     border: 1px solid rgba(255, 107, 106, 0.3);

@@ -1,18 +1,15 @@
 require("dotenv").config();
 
 const express = require("express");
-const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const multer = require("multer");
 const mongoose = require("mongoose");
-const { User, Opportunity, Saved, Application, Notice, Event } = require("./models");
+const { User, Session, Opportunity, Saved, Application, Notice, Event } = require("./models");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
-const UPLOAD_DIR = path.join(ROOT, "uploads");
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const seedOpportunities = [
   { _id: "job-1", title: "Frontend Developer Intern", company: "TechNova", type: "Internship", location: "Remote", stipend: "₹15,000/month", skills: ["HTML", "CSS", "JavaScript"], description: "Build and improve responsive web interfaces." },
@@ -21,10 +18,20 @@ const seedOpportunities = [
   { _id: "job-4", title: "Software Engineering Intern", company: "CodeWorks", type: "Internship", location: "On-site", stipend: "₹18,000/month", skills: ["JavaScript", "Git", "Problem solving"], description: "Work with a small engineering team on product features." },
   { _id: "job-5", title: "Python Automation Intern", company: "AutomateNow", type: "Internship", location: "Remote", stipend: "₹10,000/month", skills: ["Python", "APIs", "Automation"], description: "Create scripts to reduce repetitive tasks." }
 ];
-const sessions = new Map();
+const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 const scrypt = (password, salt) => new Promise((resolve, reject) => {
   crypto.scrypt(password, salt, 64, (error, key) => error ? reject(error) : resolve(key.toString("hex")));
 });
+const sessionId = token => crypto.createHash("sha256").update(token).digest("hex");
+async function createSession(user) {
+  const token = crypto.randomBytes(32).toString("hex");
+  await Session.create({
+    _id: sessionId(token),
+    userId: user.id || user._id,
+    expiresAt: new Date(Date.now() + SESSION_DURATION_MS)
+  });
+  return token;
+}
 const asyncRoute = handler => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 const text = (value, maxLength) => typeof value === "string" ? value.trim().slice(0, maxLength) : "";
 
@@ -52,16 +59,23 @@ function publicProfile(profile) {
   result.certifications = (result.certifications || []).map(publicRecord);
   return result;
 }
-function auth(req, res, next) {
+const auth = asyncRoute(async (req, res, next) => {
   const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
-  const userId = sessions.get(token);
-  if (!userId) return res.status(401).json({ error: "Please log in to continue." });
-  User.findById(userId).then(user => {
-    if (!user) return res.status(401).json({ error: "Session expired. Please log in again." });
-    req.user = user;
-    next();
-  }).catch(next);
-}
+  if (!token) return res.status(401).json({ error: "Please log in to continue." });
+  const id = sessionId(token);
+  const session = await Session.findById(id);
+  if (!session || session.expiresAt <= new Date()) {
+    if (session) await Session.deleteOne({ _id: id });
+    return res.status(401).json({ error: "Session expired. Please log in again." });
+  }
+  const user = await User.findById(session.userId);
+  if (!user) {
+    await Session.deleteOne({ _id: id });
+    return res.status(401).json({ error: "Session expired. Please log in again." });
+  }
+  req.user = user;
+  next();
+});
 function adminOnly(req, res, next) {
   if (req.user.role !== "admin") return res.status(403).json({ error: "Administrator access is required." });
   next();
@@ -71,7 +85,7 @@ function studentOnly(req, res, next) {
   next();
 }
 const upload = multer({
-  dest: UPLOAD_DIR,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, callback) => {
     const allowed = /\.(pdf|doc|docx)$/i.test(file.originalname);
@@ -79,7 +93,10 @@ const upload = multer({
   }
 });
 
-app.get("/api/health", (req, res) => res.json({ status: "ok", database: mongoose.connection.readyState === 1 ? "connected" : "disconnected" }));
+app.get("/api/health", (req, res) => {
+  const connected = mongoose.connection.readyState === 1;
+  res.status(connected ? 200 : 503).json({ status: connected ? "ok" : "unavailable", database: connected ? "connected" : "disconnected" });
+});
 app.post("/api/register", asyncRoute(async (req, res) => {
   const name = text(req.body.name, 100);
   const email = text(req.body.email, 254).toLowerCase();
@@ -92,8 +109,7 @@ app.post("/api/register", asyncRoute(async (req, res) => {
       name, email, salt, passwordHash: await scrypt(password, salt), role: "student",
       profile: { name, email, course: "", college: "", skills: "" }
     });
-    const token = crypto.randomBytes(32).toString("hex");
-    sessions.set(token, user.id);
+    const token = await createSession(user);
     res.status(201).json({ token, user: publicUser(user) });
   } catch (error) {
     if (error.code === 11000) return res.status(409).json({ error: "An account with this email already exists." });
@@ -112,15 +128,14 @@ app.post("/api/login", asyncRoute(async (req, res) => {
   const requestedRole = req.body.role === "admin" ? "admin" : "student";
   if ((user.role || "student") !== requestedRole)
     return res.status(403).json({ error: requestedRole === "admin" ? "This account does not have administrator access." : "This is an administrator account. Please use administrator login." });
-  const token = crypto.randomBytes(32).toString("hex");
-  sessions.set(token, user.id);
+  const token = await createSession(user);
   res.json({ token, user: publicUser(user) });
 }));
-app.post("/api/logout", auth, (req, res) => {
+app.post("/api/logout", auth, asyncRoute(async (req, res) => {
   const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
-  sessions.delete(token);
+  await Session.deleteOne({ _id: sessionId(token) });
   res.json({ message: "Logged out." });
-});
+}));
 app.get("/api/me", auth, (req, res) => res.json({ user: publicUser(req.user) }));
 
 app.get("/api/opportunities", asyncRoute(async (req, res) => {
@@ -362,11 +377,45 @@ app.delete("/api/profile/certifications/:id", auth, studentOnly, asyncRoute(asyn
 }));
 app.post("/api/resume", auth, studentOnly, upload.single("resume"), asyncRoute(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "Choose a PDF, DOC, or DOCX file." });
-  req.user.resume = { filename: req.file.filename, originalName: path.basename(req.file.originalname), uploadedAt: new Date() };
+  req.user.resume = {
+    filename: crypto.randomUUID(),
+    originalName: path.basename(req.file.originalname),
+    uploadedAt: new Date(),
+    size: req.file.size,
+    contentType: "application/octet-stream",
+    data: req.file.buffer
+  };
   await req.user.save();
-  res.status(201).json(req.user.resume);
+  res.status(201).json({
+    filename: req.user.resume.filename,
+    originalName: req.user.resume.originalName,
+    uploadedAt: req.user.resume.uploadedAt,
+    size: req.user.resume.size,
+    hasFile: true
+  });
 }));
-app.get("/api/resume", auth, studentOnly, (req, res) => res.json(req.user.resume || null));
+app.get("/api/resume", auth, studentOnly, (req, res) => {
+  const resume = req.user.resume;
+  res.json(resume ? {
+    filename: resume.filename,
+    originalName: resume.originalName,
+    uploadedAt: resume.uploadedAt,
+    size: resume.size,
+    hasFile: Boolean(resume.data)
+  } : null);
+});
+app.get("/api/resume/file", auth, studentOnly, (req, res) => {
+  const resume = req.user.resume;
+  if (!resume?.data) return res.status(404).json({ error: "No downloadable resume is available." });
+  const originalName = path.basename(resume.originalName || "resume");
+  const filename = originalName.replace(/[^\x20-\x7E"\\]/g, "_").replace(/["\\]/g, "_") || "resume";
+  res.set({
+    "Content-Type": "application/octet-stream",
+    "Content-Disposition": `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(originalName)}`,
+    "X-Content-Type-Options": "nosniff"
+  });
+  res.send(resume.data);
+});
 
 app.use((error, req, res, next) => {
   if (res.headersSent) return next(error);
@@ -407,8 +456,12 @@ async function start() {
   app.listen(PORT, () => console.log(`CampusConnect running at http://localhost:${PORT}`));
 }
 
-start().catch(async error => {
-  console.error(`CampusConnect could not start: ${error.message}`);
-  await mongoose.disconnect();
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  start().catch(async error => {
+    console.error(`CampusConnect could not start: ${error.message}`);
+    await mongoose.disconnect();
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { app, start };

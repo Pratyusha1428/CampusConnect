@@ -39,9 +39,19 @@ const userSchema = new mongoose.Schema({
   resume: {
     filename: String,
     originalName: String,
-    uploadedAt: Date
+    uploadedAt: Date,
+    size: Number,
+    contentType: String,
+    data: Buffer
   }
 }, { versionKey: false });
+
+const sessionSchema = new mongoose.Schema({
+  _id: { type: String, required: true },
+  userId: { type: String, ref: "User", required: true },
+  expiresAt: { type: Date, required: true }
+}, { versionKey: false });
+sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const opportunitySchema = new mongoose.Schema({
   _id: { type: String, default: id },
@@ -93,6 +103,7 @@ const eventSchema = new mongoose.Schema({
 
 module.exports = {
   User: mongoose.models.User || mongoose.model("User", userSchema),
+  Session: mongoose.models.Session || mongoose.model("Session", sessionSchema),
   Opportunity: mongoose.models.Opportunity || mongoose.model("Opportunity", opportunitySchema),
   Saved: mongoose.models.Saved || mongoose.model("Saved", savedSchema),
   Application: mongoose.models.Application || mongoose.model("Application", applicationSchema),

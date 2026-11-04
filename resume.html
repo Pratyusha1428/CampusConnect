@@ -173,7 +173,7 @@
 
                 </div>
 
-                <button class="primary-btn">
+                <button class="primary-btn resume-upload-btn">
                     + Upload New Resume
                 </button>
 
@@ -189,11 +189,9 @@
 
                 <div class="resume-file-info">
 
-                    <h3>My_Resume.pdf</h3>
+                    <h3 data-resume-name>No resume uploaded</h3>
 
-                    <p>
-                        PDF • 1.8 MB • Updated recently
-                    </p>
+                    <p data-resume-meta>Upload a PDF, DOC, or DOCX file to get started.</p>
 
                 </div>
 
@@ -202,18 +200,14 @@
 
                     <span class="file-status-dot"></span>
 
-                    Ready
+                    <span data-resume-status>No resume yet</span>
 
                 </div>
 
 
                 <div class="resume-actions">
 
-                    <button class="outline-btn">
-                        View
-                    </button>
-
-                    <button class="outline-btn">
+                    <button class="outline-btn resume-download-btn" type="button" hidden>
                         Download
                     </button>
 

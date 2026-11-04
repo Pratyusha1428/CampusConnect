@@ -1,6 +1,7 @@
 /* CampusConnect: small, readable frontend interactions */
 (() => {
   const API = "/api";
+  const BACKEND_UNAVAILABLE = "This site is serving static files only, so its backend is unavailable. GitHub Pages cannot run signup, login, or save data. Deploy the Node.js app as a web service and open that service URL; an attempted change was not saved.";
   const getToken = () => localStorage.getItem("cc_token");
   const getUser = () => { try { return JSON.parse(localStorage.getItem("cc_user") || "null"); } catch { return null; } };
   const saveSession = data => { localStorage.setItem("cc_token", data.token); localStorage.setItem("cc_user", JSON.stringify(data.user)); };
@@ -9,9 +10,24 @@
     const headers = { ...(options.headers || {}) };
     if (getToken()) headers.Authorization = `Bearer ${getToken()}`;
     if (options.body && !(options.body instanceof FormData)) headers["Content-Type"] = "application/json";
-    const response = await fetch(API + path, { ...options, headers });
-    const data = response.status === 204 ? null : await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data?.error || "Something went wrong.");
+    let response;
+    try {
+      response = await fetch(API + path, { ...options, headers });
+    } catch (error) {
+      if (error instanceof TypeError) {
+        throw new Error(`Cannot reach the CampusConnect API. ${BACKEND_UNAVAILABLE}`);
+      }
+      throw error;
+    }
+    if (response.status === 204) return null;
+    const isJson = (response.headers.get("content-type") || "").includes("application/json");
+    if (!isJson) throw new Error(BACKEND_UNAVAILABLE);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(data?.error || "Something went wrong.");
+      error.status = response.status;
+      throw error;
+    }
     return data;
   }
   function message(text, error = false, parent) {
@@ -133,14 +149,43 @@
     if (!requireLogin()) return;
     try {
       const items = await request("/applications");
-      const statuses = items.reduce((a, x) => { a[x.status] = (a[x.status] || 0) + 1; return a; }, {});
-      const stats = document.querySelectorAll(".application-stat strong, .application-stat span.stat-value");
+      const statusCounts = items.reduce((counts, item) => {
+        counts[item.status] = (counts[item.status] || 0) + 1;
+        return counts;
+      }, {});
+      const stats = document.querySelectorAll(".application-stat strong");
       if (stats[0]) stats[0].textContent = items.length;
-      container.innerHTML = items.length ? items.map(a => `<article class="application-card">
+      if (stats[1]) stats[1].textContent = statusCounts["Under Review"] || 0;
+      if (stats[2]) stats[2].textContent = statusCounts.Shortlisted || 0;
+      if (stats[3]) stats[3].textContent = statusCounts.Interview || 0;
+      const tabs = [...document.querySelectorAll(".application-tab")];
+      const sort = document.querySelector(".application-sort");
+      let selectedStatus = "All";
+      function render() {
+        const visibleItems = items.filter(item => selectedStatus === "All" || item.status === selectedStatus);
+        const sortedItems = [...visibleItems];
+        if (sort?.value === "Oldest Applied") sortedItems.sort((a, b) => new Date(a.appliedAt) - new Date(b.appliedAt));
+        else if (sort?.value === "Status") sortedItems.sort((a, b) => a.status.localeCompare(b.status));
+        else sortedItems.sort((a, b) => new Date(b.appliedAt) - new Date(a.appliedAt));
+        container.innerHTML = sortedItems.length ? sortedItems.map(a => `<article class="application-card">
         <div class="application-main"><div><p class="application-type">${escapeHtml(a.opportunity?.type || "Opportunity")}</p>
         <h3>${escapeHtml(a.opportunity?.title || "Opportunity")}</h3><p>${escapeHtml(a.opportunity?.company || "")} • ${escapeHtml(a.opportunity?.location || "")}</p></div>
-        <span class="status-badge status-review">${escapeHtml(a.status)}</span></div>
-        <p class="application-meta">Applied on ${new Date(a.appliedAt).toLocaleDateString()}</p></article>`).join("") : "<p>You haven't applied to any opportunities yet. Browse opportunities to get started.</p>";
+        <span class="status-badge ${({
+          "Under Review": "status-review",
+          Shortlisted: "status-shortlisted",
+          Interview: "status-interview",
+          Rejected: "status-rejected"
+        })[a.status] || "status-review"}">${escapeHtml(a.status)}</span></div>
+        <p class="application-meta">Applied on ${new Date(a.appliedAt).toLocaleDateString()}</p></article>`).join("")
+          : items.length ? "<p>No applications match this status.</p>" : "<p>You haven't applied to any opportunities yet. Browse opportunities to get started.</p>";
+      }
+      tabs.forEach(tab => tab.addEventListener("click", () => {
+        selectedStatus = tab.textContent.trim();
+        tabs.forEach(item => item.classList.toggle("active-tab", item === tab));
+        render();
+      }));
+      sort?.addEventListener("change", render);
+      render();
     } catch (e) { message(e.message, true); }
   }
   async function loadProfile() {
@@ -428,7 +473,28 @@
   async function handleResume() {
     const page = document.querySelector(".resume-page, .profile-container");
     if (!page) return;
-    const buttons = [...document.querySelectorAll(".upload-btn, .replace-btn, .resume-page .primary-btn")];
+    if (!requireLogin()) return;
+    const buttons = [...document.querySelectorAll(".upload-btn, .replace-btn, .resume-upload-btn")];
+    const downloadButtons = [...document.querySelectorAll(".resume-download-btn")];
+    function renderResume(resume) {
+      const name = document.querySelector("[data-resume-name]");
+      const metadata = document.querySelector("[data-resume-meta]");
+      const status = document.querySelector("[data-resume-status]");
+      if (name) name.textContent = resume?.originalName || "No resume uploaded";
+      if (metadata) {
+        const size = Number.isFinite(resume?.size) ? `${(resume.size / (1024 * 1024)).toFixed(1)} MB · ` : "";
+        metadata.textContent = resume?.hasFile
+          ? `${size}Uploaded ${new Date(resume.uploadedAt).toLocaleDateString()}`
+          : resume ? "This resume record has no file. Upload it again to download it."
+          : "Upload a PDF, DOC, or DOCX file to get started.";
+      }
+      if (status) status.textContent = resume?.hasFile ? "Ready" : resume ? "File unavailable" : "No resume yet";
+      downloadButtons.forEach(button => { button.hidden = !resume?.hasFile; });
+    }
+    async function refreshResume() {
+      renderResume(await request("/resume"));
+    }
+    try { await refreshResume(); } catch (e) { message(e.message, true); }
     let fileInput = document.querySelector("#cc-resume-file");
     if (!fileInput) {
       fileInput = document.createElement("input"); fileInput.type = "file"; fileInput.id = "cc-resume-file";
@@ -438,13 +504,34 @@
       if (button.closest("a")) return;
       event.preventDefault(); if (requireLogin()) fileInput.click();
     }));
+    downloadButtons.forEach(button => button.addEventListener("click", async () => {
+      button.disabled = true;
+      try {
+        const response = await fetch(`${API}/resume/file`, {
+          headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        if (!response.ok) {
+          const result = await response.json().catch(() => ({}));
+          throw new Error(result.error || "Could not download your resume.");
+        }
+        const url = URL.createObjectURL(await response.blob());
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = document.querySelector("[data-resume-name]")?.textContent || "resume";
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (e) { message(e.message, true); }
+      finally { button.disabled = false; }
+    }));
     fileInput.addEventListener("change", async () => {
       if (!fileInput.files.length) return;
       const data = new FormData(); data.append("resume", fileInput.files[0]);
       try {
         const result = await request("/resume", { method: "POST", body: data });
+        await refreshResume();
         message(`Resume uploaded: ${result.originalName}`);
       } catch (e) { message(e.message, true); }
+      finally { fileInput.value = ""; }
     });
   }
   function handleLogout() {
@@ -525,10 +612,14 @@
       saveSession({ token, user });
       if (isRolePage) location.replace("index.html");
       else updateHomeNavigation(user);
-    } catch {
-      localStorage.removeItem("cc_token");
-      localStorage.removeItem("cc_user");
-      if (isHome) location.replace("role.html");
+    } catch (error) {
+      if (error.status === 401) {
+        localStorage.removeItem("cc_token");
+        localStorage.removeItem("cc_user");
+        if (isHome) location.replace("role.html");
+        return;
+      }
+      message(error.message, true);
     }
   }
   document.addEventListener("DOMContentLoaded", async () => {
